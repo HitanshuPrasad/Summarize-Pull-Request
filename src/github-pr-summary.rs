@@ -12,6 +12,7 @@ use llmservice_flows::{
     LLMServiceFlows,
 };
 use std::env;
+use base64;
 
 #[no_mangle]
 #[tokio::main(flavor = "current_thread")]
@@ -157,7 +158,7 @@ async fn handler(event: Result<WebhookEvent, serde_json::Error>) {
 
     async fn fetch_readme(owner: &str, repo: &str) -> Option<String> {
         let octo = get_octo(&GithubLogin::Default);
-        match octo.repos(owner, repo).readme().await {
+        match octo.repos(owner, repo).get_readme().await {
             Ok(readme) => match readme.content {
                 Some(content) => match base64::decode(&content) {
                     Ok(decoded) => match String::from_utf8(decoded) {
@@ -171,6 +172,7 @@ async fn handler(event: Result<WebhookEvent, serde_json::Error>) {
             Err(_) => None,
         }
     }
+    
     
 
     let chat_id = format!("PR#{pull_number}");
@@ -188,6 +190,7 @@ async fn handler(event: Result<WebhookEvent, serde_json::Error>) {
             readme_text
         )
     };
+    let system = system.as_str();
 
 
     // let system = &format!("You are an experienced software developer. You will act as a reviewer for a GitHub Pull Request titled \"{}\". Please be as concise as possible while being accurate.", title);
