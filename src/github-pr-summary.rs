@@ -158,7 +158,7 @@ async fn handler(event: Result<WebhookEvent, serde_json::Error>) {
 
     async fn fetch_readme(owner: &str, repo: &str) -> Option<String> {
         let octo = get_octo(&GithubLogin::Default);
-        match octo.repos(owner, repo).get_readme().await {
+        match octo.repos(owner, repo).get_readme().send().await {
             Ok(readme) => match readme.content {
                 Some(content) => match base64::decode(&content) {
                     Ok(decoded) => match String::from_utf8(decoded) {
@@ -172,6 +172,7 @@ async fn handler(event: Result<WebhookEvent, serde_json::Error>) {
             Err(_) => None,
         }
     }
+    
     
     
 
