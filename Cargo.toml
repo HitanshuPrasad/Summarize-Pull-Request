@@ -14,6 +14,7 @@ path = "src/github-pr-summary.rs"
 crate-type = ["cdylib"]
 
 [dependencies]
+base64 = "0.13.0"
 dotenv = "0.15.0"
 github-flows = "0.8"
 serde = { version = "1.0", features = ["derive"] }

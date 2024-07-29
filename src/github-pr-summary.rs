@@ -12,6 +12,7 @@ use llmservice_flows::{
     LLMServiceFlows,
 };
 use std::env;
+use base64;
 
 #[no_mangle]
 #[tokio::main(flavor = "current_thread")]
@@ -155,8 +156,45 @@ async fn handler(event: Result<WebhookEvent, serde_json::Error>) {
         return;
     }
 
+    async fn fetch_readme(owner: &str, repo: &str) -> Option<String> {
+        let octo = get_octo(&GithubLogin::Default);
+        match octo.repos(owner, repo).get_readme().send().await {
+            Ok(readme) => match readme.content {
+                Some(content) => match base64::decode(&content) {
+                    Ok(decoded) => match String::from_utf8(decoded) {
+                        Ok(readme_text) => Some(readme_text),
+                        Err(_) => None,
+                    },
+                    Err(_) => None,
+                },
+                None => None,
+            },
+            Err(_) => None,
+        }
+    }
+    
+    
+    
+
     let chat_id = format!("PR#{pull_number}");
-    let system = &format!("You are an experienced software developer. You will act as a reviewer for a GitHub Pull Request titled \"{}\". Please be as concise as possible while being accurate.", title);
+
+    let readme_text = fetch_readme(&owner, &repo).await.unwrap_or_default();
+    let system = if readme_text.is_empty() {
+        format!(
+            "You are an experienced software developer. You will act as a reviewer for a GitHub Pull Request titled \"{}\". Please be as concise as possible while being accurate.",
+            title
+        )
+    } else {
+        format!(
+            "You are an experienced software developer. You will act as a reviewer for a GitHub Pull Request titled \"{}\". The following is the README file of the repository for context:\n\n{}\n\nPlease be as concise as possible while being accurate.",
+            title,
+            readme_text
+        )
+    };
+    let system = system.as_str();
+
+
+    // let system = &format!("You are an experienced software developer. You will act as a reviewer for a GitHub Pull Request titled \"{}\". Please be as concise as possible while being accurate.", title);
     let mut lf = LLMServiceFlows::new(&llm_api_endpoint);
     lf.set_api_key(&llm_api_key);
     // lf.set_retry_times(3);
